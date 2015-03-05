@@ -12,9 +12,9 @@ import __init__
 VERSION_NUM   = __init__.__version__
 
 RO_VERSION      = "v"+VERSION_NUM
-VERSION         = RO_VERSION+" (RODL)"
+VERSION         = RO_VERSION"
 MANIFEST_DIR    = ".ro"
-MANIFEST_FILE   = "manifest.rdf"
+MANIFEST_FILE   = "manifest.json"
 MANIFEST_FORMAT = "application/rdf+xml"
 MANIFEST_REF    = MANIFEST_DIR + "/" + MANIFEST_FILE
 REGISTRIES_FILE = ".registries.json"
