@@ -42,15 +42,6 @@ __license__ = "MIT (http://opensource.org/licenses/MIT)"
 
 class ProvenancePropertiesMixin(object):
 
-    def __getattribute__(self,name):
-        print("getattribute")
-        if(name in ["authoredBy", "createdBy", "curatedBy", "contributedBy", "retrievedBy"]):
-            for agent in list(super().__getattribute___(self,name)):
-                if isinstance(agent,Agent):
-                    return Agent
-                else:
-                    return Agent(**agent)
-
 
     def get_property(self, property):
         return self.__dict__[property]
@@ -64,7 +55,6 @@ class ProvenancePropertiesMixin(object):
 
     @property
     def createdOn(self):
-        print("hello")
         return self.get_property("createdOn")
 
 
@@ -76,18 +66,27 @@ class ProvenancePropertiesMixin(object):
     def contributedOn(self):
         return self.get_property("contributedOn")
 
-
     @property
     def retrievedOn(self):
         return self.get_property("retrievedOn")
 
     @createdOn.setter
     def createdOn(self, timestamp):
-        if self._id is not None:
-            self._graph(add((self._id, PAV.createdOn, timestamp.isoformat())))
+        self.set_property("createdOn",timestamp.isoformat())
 
 
-class JSONLDObject(object):
+class JSONLDObject(SimpleNamespace, object):
+    """
+    A class that provides attribute based access to an instances __dict__
+
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        #self.__getattribute__ = JSONLDObject.__getattribute__
+
+    @classmethod
+    def register_class_for_property(cls , property, newCls):
+        pass
 
     @property
     def context(self):
@@ -98,13 +97,51 @@ class JSONLDObject(object):
         self.__dict__["@context"] = value
 
 
-class ManifestEntry(SimpleNamespace, JSONLDObject):
+    def __getattribute__(self, attr):
+        """
+
+        """
+        map = {"annotations": Annotation,"aggregates": Aggregate, "authoredBy": Agent, "createdBy": Agent, "curatedBy": Agent, "contributedBy": Agent, "retrievedBy": Agent}
+
+        if(attr in map.keys()):
+            cls = map[attr]
+            value = super().__getattribute__(attr)
+            if value is not None:
+                if isinstance(value,list):
+                    #use a copy of the list being returned as we might be modifying it
+                    for i in list(value):
+                        if not isinstance(i,cls):
+                            #Objectify the value and replace original with objectified
+                            #version in the __dict__
+                            object = cls(**i)#TODO might not be a dict
+                            value.remove(i)
+                            value.append(object)
+                elif not isinstance(value,cls):
+                    try:
+                        value = cls(**value)
+                    except TypeError:
+                        value = cls(value)
+                    self.__setattr__(attr,value)
+            return value
+        else:
+            return super().__getattribute__(attr)
+
+
+    def populated(self):
+        """
+        Return a dictionary of all of the objects attributes that have been
+        populated i.e. where the value in the key value pair is not None
+        """
+        return {key: value for (key,value) in self.__dict__.items() if value is not None}
+
+
+class ManifestEntry(JSONLDObject):
 
     #Does this need to be ab Abstract Base Class anymore?
     __metaclass__ = ABCMeta
 
     def __init__(self, **kwargs):
-        super(ManifestEntry, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     @property
     def uri(self):
@@ -112,7 +149,6 @@ class ManifestEntry(SimpleNamespace, JSONLDObject):
 
     @uri.setter
     def uri(self, uri):
-        #TODO validate to ensure that it is a valid URI etc.?
         self.id = uri
 
 class Agent(ManifestEntry):
@@ -123,30 +159,12 @@ class Aggregate(ManifestEntry, ProvenancePropertiesMixin):
     def __init__(self, uri, createdBy=None, createdOn=None, mediatype=None, **kwargs):
         #do whatever initialization of properties we need to here
         super(Aggregate, self).__init__(id=uri, createdBy=createdBy, mediatype=mediatype, **kwargs)
-        self.__getattribute__ = ProvenancePropertiesMixin.__getattribute__
 
 
 class Annotation(ManifestEntry, ProvenancePropertiesMixin):
 
     def __init__(self, uri=None, target=None, body=None, **kwargs):
-        super(Annotation, self).__init__(uri=uri, target=target, body=body, **kwargs)
-
-
-    @property
-    def about(self):
-        return self.about
-
-    @about.setter
-    def about(self, value):
-        self.about = value
-
-    @property
-    def content(self):
-        return self.content
-
-    @content.setter
-    def content(self, value):
-        self.__dict__["content"] = value
+        super().__init__(uri=uri, target=target, body=body, **kwargs)
 
 
 class Manifest(ManifestEntry, ProvenancePropertiesMixin):
@@ -161,24 +179,11 @@ class Manifest(ManifestEntry, ProvenancePropertiesMixin):
                 contents = json.load(file)
         if contents is not None:
             super(Manifest, self).__init__(**contents)
-        if self.annotations is not None:
-           self.__dict__["annotations"] = [Annotation(**a) for a in self.annotations]
-        if self.aggregates is not None:
-           self.__dict__["aggregates"] = [Aggregate(**a) for a in self.aggregates]
 
 
     def to_json(self):
         return json.dumps(self.__dict__, indent=4, cls=ManifestEncoder)
 
-
-    @property
-    def aggregates(self):
-        """
-        Returns generator over all Aggregates aggregated by this manifest.
-        """
-        #log.debug("getAggregatedResources %s"%str(self._id))
-        for a in self.__dict__["aggregates"]:
-            yield a
 
     def get_aggregate(self, uri):
         for a in self.aggregates:
@@ -186,18 +191,9 @@ class Manifest(ManifestEntry, ProvenancePropertiesMixin):
                 return a
 
 
-    def add_aggregate(self):
+    def add_aggregate(self,aggregate):
         #check for duplicate annotation based upon uri
         pass
-
-    @property
-    def annotations(self):
-        """
-        Returns generator over all Annotations aggregated by this manifest.
-        """
-        #log.debug("getAllAnnotations %s"%str(self._id))
-        for a in self.__dict__["annotations"]:
-            yield a
 
 
     def add_annotation(self, annotation):
@@ -205,9 +201,13 @@ class Manifest(ManifestEntry, ProvenancePropertiesMixin):
 
 
 class ManifestEncoder(json.JSONEncoder):
+    """
+    Custom JSONEncoder for any object that is a subclass of ManifestEntry that
+    returns the Objects __dict__
+    """
     def default(self, obj):
         if isinstance(obj, ManifestEntry):
-            return obj.__dict__
+            return obj.populated()
         # Let the base class default method raise the TypeError
         return json.JSONEncoder.default(self, obj)
 
@@ -332,7 +332,6 @@ def main():
 
     m = Manifest("bundle.json")
 
-    m.help = "test"
     for a in m.aggregates:
         print(a)
 
@@ -359,19 +358,14 @@ def main():
     a = m.get_aggregate("/README.txt")
     print(a)
     creator = a.createdBy
+    creator.name = "A different name"
     print(creator)
 
-    tp = type(a)
-    print(tp)
-    print(tp.mro())
+#   print(m.to_json())
 
-
-
-#    print(m.to_json())
-
-#    print(m.foaf:title)
-#    print m.curated_on
-#    print m.to_json()
+#   print(m.foaf:title)
+#   print m.curated_on
+    print(m.to_json())
 
 if __name__ == "__main__":
     main()
