@@ -73,7 +73,6 @@ class UCF(ZipFileExt):
         self._reserved_files = DEFAULT_RESERVED_FILES
         self._reserved_dirs = DEFAULT_RESERVED_DIRECTORIES
 
-        print(self._allowZip64)
 
     def set_mimetype(self, mimetype=None):
         self.mimetype = mimtype or self.mimetype
