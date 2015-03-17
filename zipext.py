@@ -4,7 +4,7 @@ import zipfile
 import tempfile
 import zipext
 
-from zipfile import ZipFile
+from lib.zipfile import ZipFile
 
 
 class ZipFileExt(ZipFile):
@@ -97,3 +97,13 @@ class ZipFileExt(ZipFile):
             #in code duplication from zipfile.ZipFile's init method.
             #Really we need a reset function in zipfile.
             self.__init__(file=self.filename,mode='r',compression=self.compression,allowZip64=self._allowZip64,mimetype=self.mimetype)
+
+
+
+class ZipExtTestCase(unittest.TestCase):
+
+    def test_remove_file():
+        pass
+
+    def test_remove_nonexistent_file():
+        pass
