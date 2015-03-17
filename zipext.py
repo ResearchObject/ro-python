@@ -24,7 +24,6 @@ class ZipFileExt(ZipFile):
             zinfo = self.getinfo(zinfo_or_arcname)
 
         self.filelist.remove(zinfo)
-        print("removed")
         self._didModify = True
         self.requires_commit = True
 
@@ -87,14 +86,17 @@ class ZipFileExt(ZipFile):
         if(badfile):
             raise zipfile.BadZipFile("Error when writing updated zipfile, failed zipfile CRC-32 check: file is corrupt")
         else:
-            #mv self.filename to old, new to self.filename, and then remove old
-            #TODO check: The filenames here should always be absolute?
-            old = tempfile.NamedTemporaryFile(delete=False)
-            old.close()
-            print("filename is ", self.filename)
-            os.rename(self.filename,old.name)
-            os.rename(new_zip.filename,self.filename)
-            print("moved")
+            if self.filename is not None:
+                #if things are filebased then we can used the OS to move files around.
+                #mv self.filename to old, new to self.filename, and then remove old
+                old = tempfile.NamedTemporaryFile(delete=False)
+                old.close()
+                print("filename is ", self.filename)
+                os.rename(self.filename,old.name)
+                os.rename(new_zip.filename,self.filename)
+            else:
+                #looks like our zipfile is an in memory stream
+                pass
             #TODO instead of reusing __init__ it would be nicer to establish
             #what really needs doing to reset. This would however likely result
             #in code duplication from zipfile.ZipFile's init method.
