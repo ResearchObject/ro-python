@@ -4,13 +4,12 @@ import zipfile
 import tempfile
 import zipext
 
-from lib.zipfile import ZipFile
+from packages.zipfile import ZipFile
 
 
 class ZipFileExt(ZipFile):
 
     def __init__(self, file, mode="r", compression=zipfile.ZIP_STORED, allowZip64=True):
-        print("ZipFileExt called")
         super().__init__(file,mode=mode,compression=compression,allowZip64=allowZip64)
         self.requires_commit = False
 
@@ -25,6 +24,8 @@ class ZipFileExt(ZipFile):
             zinfo = self.getinfo(zinfo_or_arcname)
 
         self.filelist.remove(zinfo)
+        print("removed")
+        self._didModify = True
         self.requires_commit = True
 
     def rename(self, zinfo_or_arcname, filename):
@@ -49,6 +50,7 @@ class ZipFileExt(ZipFile):
             zinfo = self.getinfo(zinfo_or_arcname)
 
         zinfo.filename = filename
+        self._didModify = True
         self.requires_commit = True
 
 
@@ -60,7 +62,6 @@ class ZipFileExt(ZipFile):
 
         try:
             if self.mode in ("w", "a") and self._didModify: # write ending records
-
                 if self.requires_commit:
                     self.commit()
 
@@ -90,20 +91,12 @@ class ZipFileExt(ZipFile):
             #TODO check: The filenames here should always be absolute?
             old = tempfile.NamedTemporaryFile(delete=False)
             old.close()
+            print("filename is ", self.filename)
             os.rename(self.filename,old.name)
             os.rename(new_zip.filename,self.filename)
+            print("moved")
             #TODO instead of reusing __init__ it would be nicer to establish
             #what really needs doing to reset. This would however likely result
             #in code duplication from zipfile.ZipFile's init method.
             #Really we need a reset function in zipfile.
-            self.__init__(file=self.filename,mode='r',compression=self.compression,allowZip64=self._allowZip64,mimetype=self.mimetype)
-
-
-
-class ZipExtTestCase(unittest.TestCase):
-
-    def test_remove_file():
-        pass
-
-    def test_remove_nonexistent_file():
-        pass
+            self.__init__(file=self.filename,mode='a',compression=self.compression,allowZip64=self._allowZip64)
