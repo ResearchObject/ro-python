@@ -47,8 +47,9 @@ class ZipFileExt(ZipFile):
             zinfo = zinfo_or_arcname
         else:
             zinfo = self.getinfo(zinfo_or_arcname)
-
+        print("renamed to {:s}".format(filename))
         zinfo.filename = filename
+        self.NameToInfo[zinfo.filename] = zinfo
         self._didModify = True
         self.requires_commit = True
 
@@ -77,7 +78,7 @@ class ZipFileExt(ZipFile):
             self._fpclose(fp)
 
     def commit(self):
-
+        #Do we need to try to create the temp files in the same directory initially?
         with ZipFile(tempfile.NamedTemporaryFile(delete=False),mode="w") as new_zip:
             for name in self.namelist():
                 bytes = self.read(name)
@@ -86,19 +87,37 @@ class ZipFileExt(ZipFile):
         if(badfile):
             raise zipfile.BadZipFile("Error when writing updated zipfile, failed zipfile CRC-32 check: file is corrupt")
         else:
-            if self.filename is not None:
+            old = tempfile.NamedTemporaryFile(delete=False)
+            #Is this a File?
+            if isinstance(self.filename,str) and self.filename is not None and os.path.exists(self.filename):
                 #if things are filebased then we can used the OS to move files around.
                 #mv self.filename to old, new to self.filename, and then remove old
-                old = tempfile.NamedTemporaryFile(delete=False)
                 old.close()
-                print("filename is ", self.filename)
                 os.rename(self.filename,old.name)
                 os.rename(new_zip.filename,self.filename)
-            else:
-                #looks like our zipfile is an in memory stream
-                pass
-            #TODO instead of reusing __init__ it would be nicer to establish
-            #what really needs doing to reset. This would however likely result
-            #in code duplication from zipfile.ZipFile's init method.
-            #Really we need a reset function in zipfile.
-            self.__init__(file=self.filename,mode='a',compression=self.compression,allowZip64=self._allowZip64)
+                self.__init__(file=self.filename,mode='a',compression=self.compression,allowZip64=self._allowZip64)
+            #Is it a file-like stream?
+            elif hasattr(self.fp,'write'):
+                #Not a file but has write, looks like self.fp is a stream
+                self.fp.seek(0)
+                for b in self.fp:
+                    old.write(b)
+                old.close()
+                #Set up to write new bytes
+                self.fp.seek(0)
+                self.fp.truncate()
+
+                with open(new_zip.filename,'rb') as fp:
+                    for b in fp:
+                        self.fp.write(b)
+
+                self.__init__(file=self.fp,mode='a',compression=self.compression,allowZip64=self._allowZip64)
+                #TODO instead of reusing __init__ it would be nicer to establish
+                #what really needs doing to reset. This would however likely result
+                #in code duplication from zipfile.ZipFile's init method.
+                #Really we need a reset function in zipfile.
+
+            #cleanup
+            if os.path.exists(old.name):
+                #TODO check valid zip again before we unlink the old?
+                os.unlink(old.name)
