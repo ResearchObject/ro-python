@@ -142,6 +142,8 @@ class ManifestEntry(JSONLDObject):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        #make a check to ensure that they each have a uri - if not then generate
+        #one?
 
     @property
     def uri(self):
@@ -150,6 +152,13 @@ class ManifestEntry(JSONLDObject):
     @uri.setter
     def uri(self, uri):
         self.id = uri
+
+    def __hash__(self):
+        return hash(self.id)
+
+    def __eq__(self, rhs):
+        return self.id.__eq__(rhs.id)
+
 
 class Agent(ManifestEntry):
     pass
@@ -172,7 +181,8 @@ class Manifest(ManifestEntry, ProvenancePropertiesMixin):
     def __init__(self, filename=None, contents=None, format="json-ld"):
 
         self.id = "/"
-
+        self.aggregates = []
+        self.annotates = []
         if filename is not None:
             log.debug("Manifest read: "+filename)
             with open(filename) as file:
@@ -191,14 +201,45 @@ class Manifest(ManifestEntry, ProvenancePropertiesMixin):
                 return a
 
 
-    def add_aggregate(self,aggregate):
-        #check for duplicate annotation based upon uri
-        pass
+    def add_aggregate(self,aggregate, update=False):
+        """
+        Adds the aggregate to the list of Aggregates.
+        If an aggregate with the same id already exists:
+         If update is False (default) then the add is ignored
+         If update is True then the existing one will be overwritten
 
+        """
+        if update:
+            if aggregate in self.aggregates:
+                self.remove_aggregate(aggregate.uri)
+                self.aggregates.append(aggregate)
+        else:
+            if aggregate not in self.aggregates:
+                self.aggregates.append(aggregate)
+
+    def remove_aggregate(self,aggregate_or_uri, remove_annotations=False):
+        if isinstance(aggregate_or_uri,str):
+            aggregate_or_uri = Aggregate(aggregate_or_uri)
+        self.aggregates.remove(aggregate_or_uri)
+        if remove_annotations:
+            remove_annotations_for(aggregate_or_uri)
 
     def add_annotation(self, annotation):
-        pass
+        if annotation not in self.annotations:
+            self.annotations.append(annotation)
 
+    def remove_annotation(self, annotation_or_uri):
+        if isinstance(annotation_or_uri,str):
+            annotation_or_uri = Annotation(uri=annotation_or_uri)
+        self.annotations.remove(annotation_or_uri)
+
+    def remove_annotations_for(self, manifest_entry):
+        """
+        Remove any annotations that have this manifest_entry as a target
+        """
+        for a in list(self.annotations):
+            if a.target == manifest_entry.id:
+                self.remove_annotation(a)
 
 class ManifestEncoder(json.JSONEncoder):
     """
@@ -361,6 +402,8 @@ def main():
     creator.name = "A different name"
     print(creator)
 
+    m.add_aggregate(Aggregate("www.example.org/test"))
+    m.add_aggregate(Aggregate("www.example.org/test",created_by="test"),update=True)
 #   print(m.to_json())
 
 #   print(m.foaf:title)
