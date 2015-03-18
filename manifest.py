@@ -25,10 +25,6 @@ register('json-ld', Parser, 'rdflib_jsonld.parser', 'JsonLDParser')
 from rdflib.term import URIRef
 from rdflib.namespace import RDF, DCTERMS
 
-import pyld as pyld
-from pyld import jsonld
-from pyld.jsonld import JsonLdProcessor
-
 from namespaces import RO, OA, ORE, BUNDLE, PAV
 
 
