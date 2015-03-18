@@ -77,13 +77,31 @@ class ZipFileExt(ZipFile):
             self.fp = None
             self._fpclose(fp)
 
+    def _pre_commit(self,zipf):
+        pass
+
+    #Perhaps we need to instead use a filter in the commit method
+    #that can be passed to it
+    def _per_file_commit(self,fileinfo,bytes,zipf):
+        return True
+
+    def _post_commit(self,zipf):
+        pass
+
     def commit(self):
+        print("commit_zipext")
         #Do we need to try to create the temp files in the same directory initially?
-        with ZipFile(tempfile.NamedTemporaryFile(delete=False),mode="w") as new_zip:
-            for name in self.namelist():
-                bytes = self.read(name)
-                new_zip.writestr(name,bytes)
+        #Use self.__class__ to make ZipFile extension friendly
+        #As long as they support this basic constructor argument set then they
+        #they can reuse this commit method
+        with self.__class__(tempfile.NamedTemporaryFile(delete=False),mode="w") as new_zip:
+            self._pre_commit(new_zip)
+            for fileinfo in self.infolist():
+                bytes = self.read(fileinfo.filename)
+                if self._per_file_commit(fileinfo,bytes,new_zip):
+                    new_zip.writestr(fileinfo.filename,bytes)
             badfile = new_zip.testzip()
+            self._post_commit(new_zip)
         if(badfile):
             raise zipfile.BadZipFile("Error when writing updated zipfile, failed zipfile CRC-32 check: file is corrupt")
         else:
