@@ -75,7 +75,7 @@ class UCF(ZipFileExt):
 
 
     def set_mimetype(self, mimetype=None):
-        self.mimetype = mimtype or self.mimetype
+        self.mimetype = mimetype or self.mimetype
         #Remove any leading whitespace - prohibited by the UCF spec
         self.mimetype.lstrip()
         self._add_mimetype_file()
@@ -95,7 +95,8 @@ class UCF(ZipFileExt):
     def write(self, filename, arcname=None, compress_type=None):
         if arcname is None:
             arcname = filename
-        _check_compression_type(compress_type)
+        compress_type = compress_type or zipfile.ZIP_STORED
+        self._check_compression_type(compress_type)
         super().write(filename=filename,arcname=arcname,compress_type=compress_type)
 
     def writestr(self, zinfo_or_arcname, data, compress_type=None):
@@ -104,28 +105,46 @@ class UCF(ZipFileExt):
         else:
             filename = zinfo_or_arcname
         #Check that this is not a reserved filename or in a reserved directory
+        #TODO check for reserved directory
         if filename in self._reserved_files:
             raise ReservedFileNameException()
-
         super().writestr(zinfo_or_arcname,data,compress_type=compress_type)
+
+    def remove(self, zinfo_or_arcname):
+        #Check that this is not a reserved filename or in a reserved directory
+        #TODO check for reserved directory
+        if filename in self._reserved_files:
+            raise ReservedFileNameException()
+        super().remove(zinfo_or_arcname)
+
+    def rename(self, zinfo_or_arcname, filename):
+        #Check that this is not a reserved filename or in a reserved directory
+        #TODO check for reserved directory
+        if filename in self._reserved_files:
+            raise ReservedFileNameException()
+        super().rename(zinfo_or_arcname, filename)
 
     @classmethod
     def from_zipfile(cls,file, compression=zipfile.ZIP_STORED, allowZip64=True,mimetype=None):
         """
         Creates a new UCF file from an existing valid zipfile.
         """
-        pass
+        mimetype = mimetype or DEFAULT_MIMETYPE
+        return UCF(file,compression=compression,allowZip64=allowZip64,mimetype=mimetype)
 
     @classmethod
     def _check_compression_type(cls,compress_type):
         if compress_type not in VALID_COMPRESSION:
-            raise UnsupportedCompressionException("Unsupported Compression type: Compression must be Zip_STORED or ZIP_DEFLATED")
+            raise UnsupportedCompressionException("Unsupported Compression type: Compression must be zipfile.ZIP_STORED or zipfile.ZIP_DEFLATED")
 
-    def _register_reserved_file(filename):
-        pass
+    def _register_reserved_file(self, filename):
+        if filename not in self._reserved_files:
+            self._reserved_files.append(filename)
 
-    def _register_reserved_directory(dirname):
-        pass
+
+    def _register_reserved_directory(self, dirname):
+        if dirname not in self._reserved_dirs:
+            self._reserved_dirs.append(dirname)
 
     def _add_mimetype_file(self):
         """
@@ -149,29 +168,9 @@ class UCF(ZipFileExt):
             #This is how zip -u works?
             self.commit()
 
-    def commit(self):
-
-        with UCF(tempfile.NamedTemporaryFile(delete=False),mode="w") as temp_ucf:
-            temp_ucf._add_mimetype_file()
-            for name in self.namelist():
-                bytes = self.read(name)
-                temp_ucf.writestr(name,bytes)
-            badfile = temp_ucf.testzip()
-        if(badfile):    #retry?
-            raise BadUCFFile("Error when creating mimetype file Bad UCF file generated (failed zipfile.test_zip()): file is corrupt")
-        else:
-            #mv self.filename to old_temp, new to self.filename, and then remove old_temp
-            #TODO check: The filenames here should always be absolute?
-            old_temp = tempfile.NamedTemporaryFile(delete=False)
-            os.rename(self.filename,old_temp.name)
-            os.rename(temp_ucf.filename,self.filename)
-            #TODO instead of reusing __init__ it would be nicer to establish
-            #what really needs doing to reset. This would however likely result
-            #in code duplication from zipfile.ZipFile's init method.
-            #Really we need a reset function in zipfile.
-            self.__init__(file=self.filename,mode='r',compression=self.compression,allowZip64=self._allowZip64,mimetype=self.mimetype)
-
-
+    def _pre_commit(self,ucf):
+        print("_pre_commit_ucf")
+        ucf.set_mimetype(self.mimetype)
 
     def namelist(self,ignore_reserved=False):
         """
@@ -276,7 +275,7 @@ class UCFTestCase(unittest.TestCase):
         pass
 
 def main():
-    filename = '/tmp/test.zip'
+    filename = 'test.zip'
     mimetype = "application/vnd.wf4ever.robundle+zip"
     print(zipfile.is_zipfile(filename))
     with UCF(filename,mode='a') as container:
