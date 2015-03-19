@@ -24,6 +24,7 @@ class ZipFileExt(ZipFile):
             zinfo = self.getinfo(zinfo_or_arcname)
 
         self.filelist.remove(zinfo)
+        del self.NameToInfo[zinfo.filename]
         self._didModify = True
         self.requires_commit = True
 
@@ -47,7 +48,6 @@ class ZipFileExt(ZipFile):
             zinfo = zinfo_or_arcname
         else:
             zinfo = self.getinfo(zinfo_or_arcname)
-        print("renamed to {:s}".format(filename))
         zinfo.filename = filename
         self.NameToInfo[zinfo.filename] = zinfo
         self._didModify = True
@@ -62,78 +62,72 @@ class ZipFileExt(ZipFile):
 
         try:
             if self.mode in ("w", "a") and self._didModify: # write ending records
-                if self.requires_commit:
-                    self.commit()
 
-                with self._lock:
-                    try:
-                        self.fp.seek(self.start_dir)
-                    except (AttributeError, io.UnsupportedOperation):
-                        # Some file-like objects can provide tell() but not seek()
-                        pass
-                    self._write_end_record()
+                if self.requires_commit:
+                    #Commit will create a new zipfile and swap it in - this will
+                    #have its end record written upon close
+                    self.commit()
+                else:
+                    #Don't need to commit any changes - just write the end record
+                    with self._lock:
+                        try:
+                            self.fp.seek(self.start_dir)
+                        except (AttributeError, io.UnsupportedOperation):
+                            # Some file-like objects can provide tell() but not seek()
+                            pass
+                        self._write_end_record()
         finally:
             fp = self.fp
             self.fp = None
             self._fpclose(fp)
 
-    def _pre_commit(self,zipf):
-        pass
+    #TODO: Let clone take a filter for the files to include?
+    @classmethod
+    def clone(cls, zipf, file):
+        with ZipFileExt(file,mode="w") as new_zip:
+            for fileinfo in zipf.infolist():
+                bytes = zipf.read(fileinfo.filename)
+                new_zip.writestr(fileinfo.filename,bytes)
+            badfile = new_zip.testzip()
+        if(badfile):
+            raise zipfile.BadZipFile("Error when cloning zipfile, failed zipfile CRC-32 check: file is corrupt")
+        return new_zip
 
-    #Perhaps we need to instead use a filter in the commit method
-    #that can be passed to it
-    def _per_file_commit(self,fileinfo,bytes,zipf):
-        return True
 
-    def _post_commit(self,zipf):
-        pass
+    def reset(self):
+        #TODO instead of reusing __init__ it would be nicer to establish
+        #what really needs doing to reset. This would however likely result
+        #in code duplication from zipfile.ZipFile's init method.
+        #Really we need a reset function in zipfile.
+        self.fp.seek(0)
+        self.__init__(file=self.fp,mode='a',compression=self.compression,allowZip64=self._allowZip64)
 
     def commit(self):
-        print("commit_zipext")
         #Do we need to try to create the temp files in the same directory initially?
-        #Use self.__class__ to make ZipFile extension friendly
-        #As long as they support this basic constructor argument set then they
-        #they can reuse this commit method
-        with self.__class__(tempfile.NamedTemporaryFile(delete=False),mode="w") as new_zip:
-            self._pre_commit(new_zip)
-            for fileinfo in self.infolist():
-                bytes = self.read(fileinfo.filename)
-                if self._per_file_commit(fileinfo,bytes,new_zip):
-                    new_zip.writestr(fileinfo.filename,bytes)
-            badfile = new_zip.testzip()
-            self._post_commit(new_zip)
-        if(badfile):
-            raise zipfile.BadZipFile("Error when writing updated zipfile, failed zipfile CRC-32 check: file is corrupt")
-        else:
-            old = tempfile.NamedTemporaryFile(delete=False)
-            #Is this a File?
-            if isinstance(self.filename,str) and self.filename is not None and os.path.exists(self.filename):
-                #if things are filebased then we can used the OS to move files around.
-                #mv self.filename to old, new to self.filename, and then remove old
-                old.close()
-                os.rename(self.filename,old.name)
-                os.rename(new_zip.filename,self.filename)
-                self.__init__(file=self.filename,mode='a',compression=self.compression,allowZip64=self._allowZip64)
-            #Is it a file-like stream?
-            elif hasattr(self.fp,'write'):
-                #Not a file but has write, looks like self.fp is a stream
-                self.fp.seek(0)
-                for b in self.fp:
-                    old.write(b)
-                old.close()
-                #Set up to write new bytes
-                self.fp.seek(0)
-                self.fp.truncate()
-
-                with open(new_zip.filename,'rb') as fp:
-                    for b in fp:
-                        self.fp.write(b)
-
-                self.__init__(file=self.fp,mode='a',compression=self.compression,allowZip64=self._allowZip64)
-                #TODO instead of reusing __init__ it would be nicer to establish
-                #what really needs doing to reset. This would however likely result
-                #in code duplication from zipfile.ZipFile's init method.
-                #Really we need a reset function in zipfile.
+        new_zip = self.clone(self,tempfile.NamedTemporaryFile(delete=False))
+        old = tempfile.NamedTemporaryFile(delete=False)
+        #Is this a File?
+        if isinstance(self.filename,str) and self.filename is not None and os.path.exists(self.filename):
+            #if things are filebased then we can used the OS to move files around.
+            #mv self.filename to old, new to self.filename, and then remove old
+            old.close()
+            os.rename(self.filename,old.name)
+            os.rename(new_zip.filename,self.filename)
+            self.reset()
+        #Is it a file-like stream?
+        elif hasattr(self.fp,'write'):
+            #Not a file but has write, looks like self.fp is a stream
+            self.fp.seek(0)
+            for b in self.fp:
+                old.write(b)
+            old.close()
+            #Set up to write new bytes
+            self.fp.seek(0)
+            self.fp.truncate()
+            with open(new_zip.filename,'rb') as fp:
+                for b in fp:
+                    self.fp.write(b)
+            self.reset()
 
             #cleanup
             if os.path.exists(old.name):

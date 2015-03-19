@@ -61,17 +61,30 @@ class UCF(ZipFileExt):
         self._check_compression_type(compression)
         super().__init__(file,mode=mode,compression=compression,allowZip64=allowZip64)
         if mode == 'r':
-            self.mimetype = self.verify_mimetype()
+            #if we're in read mode then verify that the mimetype is there and
+            #valid - if not then an exception will be raised
+            self.mimetype = self.get_mimetype_from_file()
+        #else we're in write or append mode
         elif mimetype:
-            self.mimetype = mimetype
-        else:
+            #See if the mimetype matches an existing valid mimetype file
+            #If not because its missing or different then update
             try:
-                self.mimetype = self.verify_mimetype()
+                if self.get_mimetype_from_file() != mimetype:
+                    self.set_mimetype(mimetype)
+            except MissingMimetypeFileException:
+                self.set_mimetype(mimetype)
+        else:
+            #If mimetype is None then check if there is an existing one
+            #If not then set the mimetype file to the default
+            try:
+                self.mimetype = self.get_mimetype_from_file()
             except MissingMimetypeFileException:
                 self.mimetype = DEFAULT_MIMETYPE
+                self.set_mimetype()
 
         self._reserved_files = DEFAULT_RESERVED_FILES
         self._reserved_dirs = DEFAULT_RESERVED_DIRECTORIES
+
 
 
     def set_mimetype(self, mimetype=None):
@@ -80,7 +93,7 @@ class UCF(ZipFileExt):
         self.mimetype.lstrip()
         self._add_mimetype_file()
 
-    def verify_mimetype(self):
+    def get_mimetype_from_file(self):
         if 'mimetype' not in self.namelist():
             raise MissingMimetypeFileException("Mimetype file is missing.")
         fileinfo = self.getinfo('mimetype')
@@ -113,6 +126,11 @@ class UCF(ZipFileExt):
     def remove(self, zinfo_or_arcname):
         #Check that this is not a reserved filename or in a reserved directory
         #TODO check for reserved directory
+        if isinstance(zinfo_or_arcname, zipfile.ZipInfo):
+            filename = zinfo_or_arname.filename
+        else:
+            filename = zinfo_or_arcname
+
         if filename in self._reserved_files:
             raise ReservedFileNameException()
         super().remove(zinfo_or_arcname)
@@ -168,9 +186,19 @@ class UCF(ZipFileExt):
             #This is how zip -u works?
             self.commit()
 
-    def _pre_commit(self,ucf):
-        print("_pre_commit_ucf")
-        ucf.set_mimetype(self.mimetype)
+    #TODO: Let clone take a filter for the files to include?
+    @classmethod
+    def clone(cls, ucf_file, file):
+        with UCF(file,mode="w",mimetype=ucf_file.mimetype) as new_zip:
+            #Don't copy the mimetype file - it's already added by the init above
+            infolist = (fileinfo for fileinfo in ucf_file.infolist() if fileinfo.filename != MIMETYPE_FILE)
+            for fileinfo in infolist:
+                bytes = ucf_file.read(fileinfo.filename)
+                super(ZipFileExt,new_zip).writestr(fileinfo.filename,bytes)
+            badfile = new_zip.testzip()
+        if(badfile):
+            raise zipfile.BadZipFile("Error when cloning zipfile, failed zipfile CRC-32 check: file is corrupt")
+        return new_zip
 
     def namelist(self,ignore_reserved=False):
         """
@@ -283,16 +311,35 @@ def main():
         if 'junk' not in container.namelist():
             container.writestr('junk','some junk text')
 
-        if 'mimetype' not in container.namelist():
-            container._add_mimetype_file()
-            print("added mimetype")
+        for file in container.infolist():
+            print(file.filename)
+
+    #    b = container.get_mimetype_from_file()
+    #    print(b)
+    print("re-open and remove")
+    with UCF(filename,mode='a') as container:
+        print(container.read('junk'))
+        container.remove("junk")
 
         for file in container.infolist():
             print(file.filename)
 
-    #    b = container.verify_mimetype()
-    #    print(b)
+        container.writestr('junk','some new junk text')
 
+        print(container.read('junk'))
+
+        for file in container.infolist():
+            print(file.filename)
+
+    print("re-open and read")
+    with UCF(filename,mode='r') as container:
+        print(container.read('junk'))
+        for file in container.infolist():
+            print(file.filename)
+
+    with open("test.zip",'rb') as b:
+        for bytes in b:
+            print(bytes)
 
 
 if __name__ == "__main__":
