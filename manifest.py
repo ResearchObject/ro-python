@@ -12,6 +12,7 @@ import ssl
 from abc import ABCMeta
 from types import SimpleNamespace
 from datetime import time
+import codecs
 
 try:
     import urllib.parse
@@ -174,15 +175,18 @@ class Annotation(ManifestEntry, ProvenancePropertiesMixin):
 
 class Manifest(ManifestEntry, ProvenancePropertiesMixin):
 
-    def __init__(self, filename=None, contents=None, format="json-ld"):
+    def __init__(self, filename=None, file=None, contents=None, format="json-ld"):
 
         self.id = "/"
         self.aggregates = []
         self.annotates = []
         if filename is not None:
-            log.debug("Manifest read: "+filename)
             with open(filename) as file:
                 contents = json.load(file)
+        elif file is not None:
+            with file:
+                reader = codecs.getreader('UTF-8')
+                contents = json.load(reader(file))
         if contents is not None:
             super(Manifest, self).__init__(**contents)
 
