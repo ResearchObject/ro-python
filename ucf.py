@@ -193,8 +193,8 @@ class UCF(ZipFileExt):
             #Don't copy the mimetype file - it's already added by the init above
             infolist = (fileinfo for fileinfo in ucf_file.infolist() if fileinfo.filename != MIMETYPE_FILE)
             for fileinfo in infolist:
-                bytes = ucf_file.read(fileinfo.filename)
-                super(ZipFileExt,new_zip).writestr(fileinfo.filename,bytes)
+                bytes = ucf_file.read_compressed(fileinfo.filename)
+                super(ZipFileExt,new_zip).write_compressed(fileinfo,bytes)
             badfile = new_zip.testzip()
         if(badfile):
             raise zipfile.BadZipFile("Error when cloning zipfile, failed zipfile CRC-32 check: file is corrupt")
@@ -328,6 +328,8 @@ def main():
 
         print(container.read('junk'))
 
+
+
         for file in container.infolist():
             print(file.filename)
 
@@ -336,6 +338,8 @@ def main():
         print(container.read('junk'))
         for file in container.infolist():
             print(file.filename)
+
+        #container.rename("junk","junk2")
 
     with open("test.zip",'rb') as b:
         for bytes in b:
