@@ -71,6 +71,8 @@ class UCF(ZipFileExt):
             try:
                 if self.get_mimetype_from_file() != mimetype:
                     self.set_mimetype(mimetype)
+                else:
+                    self.mimetype = mimetype
             except MissingMimetypeFileException:
                 self.set_mimetype(mimetype)
         else:
@@ -194,7 +196,7 @@ class UCF(ZipFileExt):
             infolist = (fileinfo for fileinfo in ucf_file.infolist() if fileinfo.filename != MIMETYPE_FILE)
             for fileinfo in infolist:
                 bytes = ucf_file.read_compressed(fileinfo.filename)
-                super(ZipFileExt,new_zip).write_compressed(fileinfo,bytes)
+                new_zip.write_compressed(fileinfo,bytes)
             badfile = new_zip.testzip()
         if(badfile):
             raise zipfile.BadZipFile("Error when cloning zipfile, failed zipfile CRC-32 check: file is corrupt")
