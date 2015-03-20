@@ -13,7 +13,6 @@ class ZipFileExt(ZipFile):
         super().__init__(file,mode=mode,compression=compression,allowZip64=allowZip64)
         self.requires_commit = False
 
-
     def remove(self, zinfo_or_arcname):
         if not self.fp:
             raise RuntimeError(
@@ -34,11 +33,6 @@ class ZipFileExt(ZipFile):
             raise RuntimeError(
                 "Attempt to modify to ZIP archive that was already closed")
 
-        if isinstance(zinfo_or_arcname, zipfile.ZipInfo):
-            zinfo = zinfo_or_arcname
-        else:
-            zinfo = self.getinfo(zinfo_or_arcname)
-
         # Terminate the file name at the first null byte.  Null bytes in file
         # names are used as tricks by viruses in archives.
         null_byte = filename.find(chr(0))
@@ -50,7 +44,10 @@ class ZipFileExt(ZipFile):
         if os.sep != "/" and os.sep in filename:
             filename = filename.replace(os.sep, "/")
 
-
+        if isinstance(zinfo_or_arcname, zipfile.ZipInfo):
+            zinfo = zinfo_or_arcname
+        else:
+            zinfo = self.getinfo(zinfo_or_arcname)
         zinfo.filename = filename
         self.NameToInfo[zinfo.filename] = zinfo
         self._didModify = True
@@ -67,11 +64,12 @@ class ZipFileExt(ZipFile):
             if self.mode in ("w", "a") and self._didModify: # write ending records
 
                 if self.requires_commit:
-                    #Commit will create a new zipfile and swap it in - this will
-                    #have its end record written upon close
+                    # Commit will create a new zipfile and swap it in for this
+                    # zip's filepointer - this will have its end record written
+                    # upon close
                     self.commit()
                 else:
-                    #Don't need to commit any changes - just write the end record
+                    # Don't need to commit any changes - just write the end record
                     with self._lock:
                         try:
                             self.fp.seek(self.start_dir)
@@ -99,10 +97,10 @@ class ZipFileExt(ZipFile):
     def read_compressed(self, name, pwd=None):
         """Return file bytes uncompressed for name."""
         with self.open(name, "r", pwd) as fp:
-            #Replace the read, _read1 methods for the ZipExtFile file pointer fp
+        #Replace the read, _read1 methods for the ZipExtFile file pointer fp
 	    #with those defined in this module to support reading the compressed
 	    #version of the file
-	    fp.read = types.MethodType(read,fp)
+            fp.read = types.MethodType(read,fp)
             fp._read1 = types.MethodType(_read1,fp)
             return fp.read(decompress=False)
 
@@ -267,4 +265,3 @@ def _read1(self, n, decompress=True):
         self._eof = True
     self._update_crc(data)
     return data
-
