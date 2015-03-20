@@ -1,15 +1,25 @@
+#from test import test_zipfile
 import zipext
 import zipfile
 import unittest
-from test import test_zipfile
 from tempfile import TemporaryFile
-from test.support import TESTFN, unlink
 from random import randint, random, getrandbits
 from tempfile import NamedTemporaryFile
+#from test.support import (TESTFN, unlink)
 import io
+import os
 
+TESTFN = '@test'
+TESTFN = "{}_{}_tmp".format(TESTFN, os.getpid())
 
 TESTFN2 = TESTFN + "2"
+
+def unlink(filename):
+    try:
+        os.unlink(filename)
+    except (FileNotFoundError, NotADirectoryError):
+        pass
+
 
 def get_files(test):
     yield TESTFN2
