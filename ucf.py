@@ -175,7 +175,7 @@ class UCF(ZipFileExt):
         if not self.namelist():
             #If the archive is empty then we're in luck - we can just
             #write the file at the top
-            super().writestr('mimetype',ascii_value,compress_type=None)
+            super().writestr('mimetype',ascii_value,compress_type=zipfile.ZIP_STORED)
             return
         else:
             #The archive isn't empty - but we need the mimetype file
@@ -306,7 +306,7 @@ def main():
     filename = 'test.zip'
     mimetype = "application/vnd.wf4ever.robundle+zip"
     print(zipfile.is_zipfile(filename))
-    with UCF(filename,mode='a') as container:
+    with UCF(filename,mode='a',compression=zipfile.ZIP_DEFLATED) as container:
 
         if 'junk' not in container.namelist():
             container.writestr('junk','some junk text')
