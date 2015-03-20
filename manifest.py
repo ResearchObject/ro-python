@@ -143,12 +143,12 @@ class ManifestEntry(JSONLDObject):
         #one?
 
     @property
-    def uri(self):
-        return self.id
+    def id(self):
+        return self.uri
 
-    @uri.setter
-    def uri(self, uri):
-        self.id = uri
+    @id.setter
+    def id(self, id):
+        self.uri = id
 
     def __hash__(self):
         return hash(self.id)
@@ -164,7 +164,7 @@ class Aggregate(ManifestEntry, ProvenancePropertiesMixin):
 
     def __init__(self, uri, createdBy=None, createdOn=None, mediatype=None, **kwargs):
         #do whatever initialization of properties we need to here
-        super(Aggregate, self).__init__(id=uri, createdBy=createdBy, mediatype=mediatype, **kwargs)
+        super(Aggregate, self).__init__(uri=uri, createdBy=createdBy, mediatype=mediatype, **kwargs)
 
 
 class Annotation(ManifestEntry, ProvenancePropertiesMixin):
