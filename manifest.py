@@ -185,8 +185,11 @@ class Manifest(ManifestEntry, ProvenancePropertiesMixin):
                 contents = json.load(file)
         elif file is not None:
             with file:
-                reader = codecs.getreader('UTF-8')
-                contents = json.load(reader(file))
+                data = file.read()
+                if isinstance(data,bytes):
+                    data = data.decode('UTF-8')
+                contents = json.loads(data)
+            print(file.closed)
         if contents is not None:
             super(Manifest, self).__init__(**contents)
 
