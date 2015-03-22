@@ -83,6 +83,7 @@ class ZipFileExt(ZipFile):
             self._fpclose(fp)
 
     #TODO: Let clone take a filter for the files to include?
+    #TODO: need to instead validate *after* the file has closed?
     @classmethod
     def clone(cls, zipf, file):
         with ZipFileExt(file,mode="w") as new_zip:
@@ -159,10 +160,7 @@ class ZipFileExt(ZipFile):
 
     def reset(self):
         #TODO instead of reusing __init__ it would be nicer to establish
-        #what really needs doing to reset. This would however likely result
-        #in code duplication from zipfile.ZipFile's init method.
-        #Really we need a reset function in zipfile.
-        self.fp.seek(0) #do we need this?
+        #what really needs doing to reset.
         self.__init__(file=self.fp,mode='a',compression=self.compression,allowZip64=self._allowZip64)
 
     def commit(self):
