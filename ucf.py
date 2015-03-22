@@ -3,7 +3,6 @@ import os
 import zipfile
 import datetime
 import tempfile
-import binascii
 
 from zipext import ZipFileExt
 
@@ -29,7 +28,7 @@ class UCF(ZipFileExt):
 
     def __init__(self, file, mode="r", compression=zipfile.ZIP_STORED, allowZip64=True,mimetype=None):
         """
-        Class with methods to open, read, write, close, and list Universal Container Format (UCF) files.
+        Class with methods to open, read, write, remove, rename, close and list Universal Container Format (UCF) files.
 
         u = UCF(file,mode="r", compression=ZIP_STORED, allowZip64=True, mimetype="application/epub+zip")
 
