@@ -1,21 +1,28 @@
 #!/usr/bin/env python
-
 """
 RO manager command parser and dispatcher
 """
-
-__author__      = "Graham Klyne (GK@ACM.ORG)"
-__copyright__   = "Copyright 2011-2013, University of Oxford"
-__license__     = "MIT (http://opensource.org/licenses/MIT)"
-
-
 import sys
 import os
 import os.path
 import re
 import codecs
-import optparse
+import argparse
 import logging
+
+import command
+
+__author__      = "Matthew Gamble (matthew.gamble@gmail.com), Graham Klyne (GK@ACM.ORG)"
+__copyright__   = "Copyright 2011-2013, University of Oxford"
+__license__     = "MIT (http://opensource.org/licenses/MIT)"
+
+VERSION = "0.3.0"
+MANIFEST_DIR    = ".ro"
+MANIFEST_FILE   = "manifest.json"
+MANIFEST_FORMAT = "application/rdf+xml"
+
+CONFIG_FILE = "ro.config"
+
 
 log = logging.getLogger(__name__)
 
@@ -32,57 +39,69 @@ if __name__ == "__main__":
         fileloghandler.setFormatter(filelogformatter)
         logging.getLogger('').addHandler(fileloghandler)
 
-import ro_settings
-import ro_command
-import ro_utils
 
-def run(configbase, options, args):
+def getoptionvalue(val, prompt):
+    if not val:
+        if sys.stdin.isatty():
+            val = raw_input(prompt)
+        else:
+            val = sys.stdin.readline()
+            if val[-1] == '\n': val = val[:-1]
+    return val
+
+
+def run(config, options, args):
     status = 0
     progname = ro_utils.progname(args)
+    config.progname = progname
     if len(args) < 2:
         print "%s No command given"%(progname)
         print "Enter '%s help' to show a list of commands"
         status = 2
     else:
-        status = ro_command.check_command_args(progname, options, args)
+        status = command.check_command_args(progname, options, args)
     if status != 0: return status
     #@@TODO: refactor to use command/usage table in rocommand for dispatch
     if args[1] == "help":
-        status = ro_command.help(progname, args)
+        status = command.help(config,args)
     elif args[1] == "config":
-        status = ro_command.config(progname, configbase, options, args)
+        status = command.config(config, options, args)
     elif args[1] == "create":
-        status = ro_command.create(progname, configbase, options, args)
+
+        print("create")
+
+
+        #status = command.init(roname, )
     elif args[1] == "status":
-        status = ro_command.status(progname, configbase, options, args)
+        status = command.status(config, options, args)
     elif args[1] == "add":
-        status = ro_command.add(progname, configbase, options, args)
+        status = command.add(config, options, args)
     elif args[1] == "remove":
-        status = ro_command.remove(progname, configbase, options, args)
+        status = command.remove(config, options, args)
     elif args[1] in ["list", "ls"]:
-        status = ro_command.list(progname, configbase, options, args)
+        status = command.list(config, options, args)
     elif args[1] in ["annotate","link"]:
-        status = ro_command.annotate(progname, configbase, options, args)
+        status = command.annotate(config, options, args)
     elif args[1] == "annotations":
-        status = ro_command.annotations(progname, configbase, options, args)
+        status = command.annotations(config, options, args)
     elif args[1] == "evaluate" or args[1] == "eval":
-        status = ro_command.evaluate(progname, configbase, options, args)
+        status = command.evaluate(config, options, args)
     elif args[1] == "checkout":
-        status = ro_command.checkout(progname, configbase, options, args)
+        status = command.checkout(config, options, args)
     elif args[1] == "push":
-        status = ro_command.push(progname, configbase, options, args)
+        status = command.push(config, options, args)
     elif args[1] == "dump":
-        status = ro_command.dump(progname, configbase, options, args)
+        status = command.dump(config, options, args)
     elif args[1] == "manifest":
-        status = ro_command.manifest(progname, configbase, options, args)
+        status = command.manifest(config, options, args)
     elif args[1] == "snapshot":
-        status = ro_command.snapshot(progname, configbase, options, args)
+        status = command.snapshot(config, options, args)
     elif args[1] == "archive":
-        status = ro_command.archive(progname, configbase, options, args)        
+        status = command.archive(config, options, args)
     elif args[1] == "freeze":
-        status = ro_command.freeze(progname, configbase, options, args)
+        status = command.freeze(config, options, args)
     else:
-        print "%s: unrecognized command: %s"%(progname,args[1])
+        print "%s: unrecognized command: %s"%(config.progname,args[1])
         status = 2
     return status
 
@@ -203,11 +222,53 @@ def runCommand(configbase, robase, argv):
             logging.getLogger('').addHandler(fileloghandler)
     else:
         logging.basicConfig(level=logging.INFO)
-    log.debug("runCommand: configbase %s, robase %s, argv %s"%(configbase, robase, repr(argv)))
+    log.debug("runCommand: configbase %s, robase %s, argv %s"%(config.configbase, robase, repr(argv)))
     status = 1
     if options:
-        status  = run(configbase, options, args)
+        status  = run(config.configbase, options, args)
     return status
+
+def configfilename(configbase):
+    return os.path.abspath(configbase+"/"+CONFIGFILE)
+
+def writeconfig(configbase, config):
+    """
+    Write supplied configuration dictionary to indicated directory
+    """
+    with open(configfilename(configbase), 'w') as configfile:
+        json.dump(config, configfile, indent=4)
+        configfile.write("\n")
+    return
+
+def resetconfig(configbase):
+    """
+    Reset configuration in indicated directory
+    """
+    ro_config = {
+        "username":             None,
+        "useremail":            None,
+        "annotationTypes":      None,
+        "annotationPrefixes":   None,
+        }
+    writeconfig(configbase, ro_config)
+    return
+
+def readconfig(configbase):
+    """
+    Read configuration in indicated directory and return as a dictionary
+    """
+    ro_config = {
+        "username":             None,
+        "useremail":            None,
+        "annotationTypes":      None,
+        "annotationPrefixes":   None,
+        }
+    configfile = None
+    try:
+        with open(configfilename(configbase), 'r') as configfile:
+            ro_config  = json.load(configfile)
+        #TODO add exception handling for missing/unreadable config file
+    return ro_config
 
 def runMain():
     """
@@ -215,7 +276,9 @@ def runMain():
     """
     configbase = os.path.expanduser("~")
     robase = os.getcwd()
-    return runCommand(configbase, robase, sys.argv)
+    config = readconfig(configbase)
+    config.configbase = configbase
+    return runCommand(config, robase, sys.argv)
 
 if __name__ == "__main__":
     """
