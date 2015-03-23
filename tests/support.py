@@ -3,6 +3,14 @@ import io
 from tempfile import NamedTemporaryFile, TemporaryFile
 import unittest
 
+#<= Python3.2 doesn't have FileNotFound and NotADirectory 
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = OSError
+    NotADirectoryError = OSError
+
+
 TESTFN = '@test'
 TESTFN = "{}_{}_tmp".format(TESTFN, os.getpid())
 
