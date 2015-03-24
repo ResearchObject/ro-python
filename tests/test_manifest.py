@@ -2,7 +2,7 @@ import unittest as unittest
 
 from tests.support import (TESTFN, TESTFN2, unlink, get_files)
 
-from rolib.manifest import Manifest, Aggregate
+from manifest import Manifest, Aggregate
 
 manifest = """
 {
