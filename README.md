@@ -2,6 +2,7 @@
 ro-python library
 
 
-This repository is a partial fork of [ro-manager](https://github.com/wf4ever/ro-manager) in order to 
-- separate out core RO python tooling 
-- and refactor as a general ro library
+This repository is a partial fork of [ro-manager](https://github.com/wf4ever/ro-manager) in order to
+- Separate out core RO python tooling from the ro-manager
+- Refactor what was there as a general, re-useable ro library
+- Bring the tooling in line with the RO Bundle specification @ https://researchobject.github.io/specifications/bundle/
