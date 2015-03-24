@@ -10,9 +10,14 @@ import re
 import logging
 import ssl
 from abc import ABCMeta
-from types import SimpleNamespace
 from datetime import datetime
 import codecs
+
+
+try:
+    from types import SimpleNamespace
+except ImportError:
+    from packages.simplenamespace import SimpleNamespace
 
 try:
     import urllib.parse
@@ -76,6 +81,16 @@ class ProvenancePropertiesMixin(object):
             timestamp = timestamp.isoformat()
         self.set_property("createdOn",timestamp)
 
+    @property
+    def createdBy(self):
+        return self.__dict__["createdBy"]
+
+    @createdBy.setter
+    def createdBy(self, creator):
+        if isinstance(creator,Agent):
+            self.__dict__["createdBy"] = creator
+        else:
+            self.__dict__["createdBy"] = Agent(creator)
 
 
 class JSONLDObject(SimpleNamespace, object):
@@ -164,7 +179,19 @@ class ManifestEntry(JSONLDObject):
 
 
 class Agent(ManifestEntry):
-    pass
+
+    def __init__(self, name, uri=None, orcid=None, **kwargs):
+        super().__init__(name=name,uri=uri,orcid=orcid,**kwargs)
+
+    @property
+    def id(self):
+        id = self.uri or self.name
+        return id
+
+    @id.setter
+    def id(self, id):
+        self.uri = id
+
 
 class Aggregate(ManifestEntry, ProvenancePropertiesMixin):
 
@@ -209,7 +236,7 @@ class Manifest(ManifestEntry, ProvenancePropertiesMixin):
                 return a
 
 
-    def add_aggregate(self,aggregate, update=False):
+    def add_aggregate(self, aggregate_or_uri, createdBy=None, createdOn=None, mediatype=None, update=False):
         """
         Adds the aggregate to the list of Aggregates.
         If an aggregate with the same id already exists:
@@ -217,6 +244,16 @@ class Manifest(ManifestEntry, ProvenancePropertiesMixin):
          If update is True then the existing one will be overwritten
 
         """
+
+        if isinstance(aggregate_or_uri,Aggregate):
+            aggregate = aggregate_or_uri
+        else:
+            aggregate = Aggregate(aggregate_or_uri)
+
+        aggregate.createdBy = createdBy or aggregate.createdBy
+        aggregate.createdOn = createdOn or aggregate.createdOn
+        aggregate.mediatype = mediatype or aggregate.mediatype
+
         if update:
             if aggregate in self.aggregates:
                 self.remove_aggregate(aggregate.uri)
