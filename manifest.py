@@ -11,7 +11,7 @@ import logging
 import ssl
 from abc import ABCMeta
 from types import SimpleNamespace
-from datetime import time
+from datetime import datetime
 import codecs
 
 try:
@@ -41,10 +41,13 @@ class ProvenancePropertiesMixin(object):
 
 
     def get_property(self, property):
-        return self.__dict__[property]
+        try:
+            return self.__dict__[property]
+        except KeyError:
+            return None
 
     def set_property(self, property, value):
-        self.___dict__[property] = value
+        self.__dict__[property] = value
 
     @property
     def authoredOn(self):
@@ -69,7 +72,10 @@ class ProvenancePropertiesMixin(object):
 
     @createdOn.setter
     def createdOn(self, timestamp):
-        self.set_property("createdOn",timestamp.isoformat())
+        if hasattr(timestamp,'isoformat'):
+            timestamp = timestamp.isoformat()
+        self.set_property("createdOn",timestamp)
+
 
 
 class JSONLDObject(SimpleNamespace, object):
@@ -189,7 +195,6 @@ class Manifest(ManifestEntry, ProvenancePropertiesMixin):
                 if isinstance(data,bytes):
                     data = data.decode('UTF-8')
                 contents = json.loads(data)
-            print(file.closed)
         if contents is not None:
             super(Manifest, self).__init__(**contents)
 
