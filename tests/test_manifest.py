@@ -72,12 +72,10 @@ class ManfiestTestCase(unittest.TestCase):
         self.assertEquals(m.id,"/")
         pass
 
-    def test_manifest_read_from_file(self):
+    def test_manifest_read_from_file_pointer(self):
 
         with open(TESTFN,'r') as fp:
             m = Manifest(file=fp)
-
-            m.uri = "http://www.example.org/crap"
 
             a = m.get_aggregate("/README.txt")
             self.assertIsNotNone(a)
@@ -88,6 +86,18 @@ class ManfiestTestCase(unittest.TestCase):
             m.add_aggregate(Aggregate("www.example.org/test"))
             m.add_aggregate(Aggregate("www.example.org/test",created_by="test"),update=True)
 
+
+    def test_manifest_read_from_filename(self):
+        m = Manifest(filename=TESTFN)
+
+        a = m.get_aggregate("/README.txt")
+        self.assertIsNotNone(a)
+        self.assertEquals(a, Aggregate("/README.txt"))
+        self.assertEquals(m.createdBy.name, "Alice W. Land")
+        self.assertEquals(m.createdBy.orcid,"http://orcid.org/0000-0002-1825-0097")
+        self.assertEquals(m.createdBy.uri,"http://example.com/foaf#alice")
+        m.add_aggregate(Aggregate("www.example.org/test"))
+        m.add_aggregate(Aggregate("www.example.org/test",created_by="test"),update=True)
 
 
     def test_manifest_add_aggregate(self):
@@ -105,16 +115,31 @@ class ManfiestTestCase(unittest.TestCase):
         contains =  Aggregate("/test") in manifest.aggregates
         self.assertTrue(contains)
         a = manifest.get_aggregate("/test")
-        print(a)
         self.assertEquals(a.createdBy.name,"Alice W.Land")
 
-        pass
 
     def test_manifest_update_existing_aggregate(self):
-        pass
+        manifest = Manifest()
+        manifest.add_aggregate("/test",createdBy="Alice W.Land", createdOn="2013-03-05T17:29:03Z", mediatype="text/plain")
+        manifest.add_aggregate("/test",createdBy="Deckard", update=True)
+
+        contains =  Aggregate("/test") in manifest.aggregates
+        self.assertTrue(contains)
+        a = manifest.get_aggregate("/test")
+        self.assertEquals(a.createdBy.name,"Deckard")
+
 
     def test_manifest_remove_aggregate(self):
-        pass
+        manifest = Manifest()
+        manifest.add_aggregate("/test1",createdBy="Alice W.Land", createdOn="2013-03-05T17:29:03Z", mediatype="text/plain")
+        manifest.add_aggregate("/test2",createdBy="Deckard", createdOn="2013-04-03T14:12:55Z", mediatype="text/plain")
+
+
+        self.assertIn(Aggregate("/test1"), manifest.aggregates)
+        manifest.remove_aggregate("/test1")
+        self.assertNotIn(Aggregate("/test1"), manifest.aggregates)
+        self.assertIn(Aggregate("/test2"), manifest.aggregates)
+
 
     def test_manifest_add_annotation(self):
         pass
