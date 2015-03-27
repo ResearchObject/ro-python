@@ -4,8 +4,8 @@ import zipfile
 import tempfile
 import zipext
 import types
-from packages.zipfile import ZipFile
-from packages.zipfile import (ZIP_DEFLATED, ZIP_STORED, ZIP_LZMA, ZIP64_LIMIT)
+from zipfile import ZipFile
+from zipfile import (ZIP_DEFLATED, ZIP_STORED, ZIP_LZMA, ZIP64_LIMIT)
 
 class ZipFileExt(ZipFile):
 
@@ -48,8 +48,10 @@ class ZipFileExt(ZipFile):
             zinfo = zinfo_or_arcname
         else:
             zinfo = self.getinfo(zinfo_or_arcname)
+
         zinfo.filename = filename
         self.NameToInfo[zinfo.filename] = zinfo
+
         self._didModify = True
         self.requires_commit = True
 
