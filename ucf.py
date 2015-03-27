@@ -4,7 +4,7 @@ import zipfile
 import datetime
 import tempfile
 
-from zipext import ZipFileExt
+from zipfileext.zipext import ZipFileExt
 
 META_INF_DIR = "META-INF"
 MIMETYPE_FILE = "mimetype"
@@ -65,14 +65,18 @@ class UCF(ZipFileExt):
             self.mimetype = self.get_mimetype_from_file()
         #else we're in write or append mode
         elif mimetype:
+            #TODO move all all of this to the set_mimtype function?
             #See if the mimetype matches an existing valid mimetype file
-            #If not because its missing or different then update
             try:
                 if self.get_mimetype_from_file() != mimetype:
+                    #If not because it's different then update
                     self.set_mimetype(mimetype)
                 else:
+                    #If so - then just set store mimetype
                     self.mimetype = mimetype
             except MissingMimetypeFileException:
+                #if not because the mimetype file is missing then update
+                #to write mimetype file
                 self.set_mimetype(mimetype)
         else:
             #If mimetype is None then check if there is an existing one
@@ -85,8 +89,6 @@ class UCF(ZipFileExt):
 
         self._reserved_files = DEFAULT_RESERVED_FILES
         self._reserved_dirs = DEFAULT_RESERVED_DIRECTORIES
-
-
 
     def set_mimetype(self, mimetype=None):
         self.mimetype = mimetype or self.mimetype
