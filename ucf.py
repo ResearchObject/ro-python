@@ -4,7 +4,7 @@ import zipfile
 import datetime
 import tempfile
 
-from zipfileext.zipext import ZipFileExt
+from packages.zipextended.zipfileextended import ZipFileExtended
 
 META_INF_DIR = "META-INF"
 MIMETYPE_FILE = "mimetype"
@@ -24,7 +24,7 @@ DEFAULT_RESERVED_FILES = [ MIMETYPE_FILE,
 DEFAULT_RESERVED_DIRECTORIES = [ META_INF_DIR ]
 
 
-class UCF(ZipFileExt):
+class UCF(ZipFileExtended):
 
     def __init__(self, file, mode="r", compression=zipfile.ZIP_STORED, allowZip64=True,mimetype=None):
         """
