@@ -4,8 +4,8 @@ from .packages import zipfile
 import tempfile
 import types
 import shutil
-from zipfile import ZipFile
-from zipfile import (ZIP_DEFLATED, ZIP_STORED, ZIP_LZMA, ZIP64_LIMIT)
+from .packages.zipfile import ZipFile
+from .packages.zipfile import (ZIP_DEFLATED, ZIP_STORED, ZIP_LZMA, ZIP64_LIMIT)
 import struct
 import operator
 
