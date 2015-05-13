@@ -1,6 +1,6 @@
 import io
 import os
-import zipfile
+import packages.zipextended.packages.zipfile as zipfile
 import datetime
 import tempfile
 
