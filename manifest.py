@@ -236,16 +236,14 @@ class Manifest(ManifestEntry, ProvenancePropertiesMixin):
                 return a
 
 
-    def add_aggregate(self, aggregate_or_uri, createdBy=None, createdOn=None, mediatype=None, update=False):
+    def add_aggregate(self, aggregate_or_uri, createdBy=None, createdOn=None, mediatype=None):
         """
         Adds the aggregate to the list of Aggregates.
-        If an aggregate with the same id already exists:
-         If update is False (default) then the add is ignored
-         If update is True then the existing one will be overwritten
-
+        If an aggregate with the same id already exists then the old aggregate
+        is replaced.
         """
 
-        if isinstance(aggregate_or_uri,Aggregate):
+        if isinstance(aggregate_or_uri, Aggregate):
             aggregate = aggregate_or_uri
         else:
             aggregate = Aggregate(aggregate_or_uri)
@@ -254,13 +252,8 @@ class Manifest(ManifestEntry, ProvenancePropertiesMixin):
         aggregate.createdOn = createdOn or aggregate.createdOn
         aggregate.mediatype = mediatype or aggregate.mediatype
 
-        if update:
-            if aggregate in self.aggregates:
-                self.remove_aggregate(aggregate.uri)
-                self.aggregates.append(aggregate)
-        else:
-            if aggregate not in self.aggregates:
-                self.aggregates.append(aggregate)
+        self.aggregates.append(aggregate)
+
 
     def remove_aggregate(self,aggregate_or_uri, remove_annotations=False):
         if isinstance(aggregate_or_uri,str):

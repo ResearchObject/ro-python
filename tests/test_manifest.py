@@ -84,7 +84,7 @@ class ManfiestTestCase(unittest.TestCase):
             self.assertEquals(m.createdBy.orcid,"http://orcid.org/0000-0002-1825-0097")
             self.assertEquals(m.createdBy.uri,"http://example.com/foaf#alice")
             m.add_aggregate(Aggregate("www.example.org/test"))
-            m.add_aggregate(Aggregate("www.example.org/test",created_by="test"),update=True)
+            m.add_aggregate(Aggregate("www.example.org/test",created_by="test"))
 
 
     def test_manifest_read_from_filename(self):
@@ -97,7 +97,7 @@ class ManfiestTestCase(unittest.TestCase):
         self.assertEquals(m.createdBy.orcid,"http://orcid.org/0000-0002-1825-0097")
         self.assertEquals(m.createdBy.uri,"http://example.com/foaf#alice")
         m.add_aggregate(Aggregate("www.example.org/test"))
-        m.add_aggregate(Aggregate("www.example.org/test",created_by="test"),update=True)
+        m.add_aggregate(Aggregate("www.example.org/test",created_by="test"))
 
 
     def test_manifest_add_aggregate(self):
@@ -121,10 +121,11 @@ class ManfiestTestCase(unittest.TestCase):
     def test_manifest_update_existing_aggregate(self):
         manifest = Manifest()
         manifest.add_aggregate("/test",createdBy="Alice W.Land", createdOn="2013-03-05T17:29:03Z", mediatype="text/plain")
-        manifest.add_aggregate("/test",createdBy="Deckard", update=True)
 
         contains =  Aggregate("/test") in manifest.aggregates
         self.assertTrue(contains)
+        a = manifest.get_aggregate("/test")
+        a.createdBy.name = "Deckard"
         a = manifest.get_aggregate("/test")
         self.assertEquals(a.createdBy.name,"Deckard")
 
