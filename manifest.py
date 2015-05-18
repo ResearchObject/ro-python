@@ -255,12 +255,13 @@ class Manifest(ManifestEntry, ProvenancePropertiesMixin):
         self.aggregates.append(aggregate)
 
 
-    def remove_aggregate(self,aggregate_or_uri, remove_annotations=False):
+
+    def remove_aggregate(self, aggregate_or_uri, remove_annotations=False):
         if isinstance(aggregate_or_uri,str):
-            aggregate_or_uri = Aggregate(aggregate_or_uri)
-        self.aggregates.remove(aggregate_or_uri)
+            aggregate = Aggregate(aggregate_or_uri)
+        self.aggregates.remove(aggregate)
         if remove_annotations:
-            remove_annotations_for(aggregate_or_uri)
+            remove_annotations_for(aggregate)
 
     def add_annotation(self, annotation):
         if annotation not in self.annotations:
