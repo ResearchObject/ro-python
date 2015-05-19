@@ -298,44 +298,45 @@ class ManifestEncoder(json.JSONEncoder):
 
 def main():
 
-    m = Manifest("bundle.json")
+    with open("bundle.json") as fp:
+        m = Manifest(file=fp)
 
-    for a in m.aggregates:
+        for a in m.aggregates:
+            print(a)
+
+        for a in m.annotations:
+            print(a)
+
+        for a in m.annotations:
+            a.content = "test"
+
+        for a in m.annotations:
+            print(a)
+
+        m.uri = "http://www.example.org/manifest"
+
+        print(m.uri)
+        print(m.createdOn)
+
+        context = "@context"
+        print(m.context)
+
+        print(m.__dict__["@context"])
+
+
+        a = m.get_aggregate("/README.txt")
         print(a)
+        creator = a.createdBy
+        creator.name = "A different name"
+        print(creator)
 
-    for a in m.annotations:
-        print(a)
+        m.add_aggregate(Aggregate("www.example.org/test"))
+        m.add_aggregate(Aggregate("www.example.org/test",created_by="test"),update=True)
+    #   print(m.to_json())
 
-    for a in m.annotations:
-        a.content = "test"
-
-    for a in m.annotations:
-        print(a)
-
-    m.uri = "http://www.example.org/crap"
-
-    print(m.uri)
-    print(m.createdOn)
-
-    context = "@context"
-    print(m.context)
-
-    print(m.__dict__["@context"])
-
-
-    a = m.get_aggregate("/README.txt")
-    print(a)
-    creator = a.createdBy
-    creator.name = "A different name"
-    print(creator)
-
-    m.add_aggregate(Aggregate("www.example.org/test"))
-    m.add_aggregate(Aggregate("www.example.org/test",created_by="test"),update=True)
-#   print(m.to_json())
-
-#   print(m.foaf:title)
-#   print m.curated_on
-    print(m.to_json())
+    #   print(m.foaf:title)
+    #   print m.curated_on
+        print(m.to_json())
 
 if __name__ == "__main__":
     main()
