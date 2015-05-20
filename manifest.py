@@ -208,9 +208,9 @@ class Annotation(ManifestEntry, ProvenancePropertiesMixin):
 
 class Manifest(ManifestEntry, ProvenancePropertiesMixin):
 
-    def __init__(self, uri="/", filename=None, file=None, contents=None, format="json-ld"):
+    def __init__(self, id="/", filename=None, file=None, contents=None, format="json-ld"):
 
-        self.uri = uri
+        self.id = id
         self.aggregates = []
         self.annotates = []
         if filename is not None:
