@@ -141,6 +141,9 @@ class ManfiestTestCase(unittest.TestCase):
         self.assertNotIn(Aggregate("/test1"), manifest.aggregates)
         self.assertIn(Aggregate("/test2"), manifest.aggregates)
 
+        aggregate = manifest.get_aggregate("/test2")
+        manifest.remove_aggregate(aggregate)
+        self.assertNotIn(aggregate, manifest.aggregates)
 
     def test_manifest_add_annotation(self):
         pass

@@ -259,6 +259,8 @@ class Manifest(ManifestEntry, ProvenancePropertiesMixin):
     def remove_aggregate(self, aggregate_or_uri, remove_annotations=False):
         if isinstance(aggregate_or_uri,str):
             aggregate = Aggregate(aggregate_or_uri)
+        else:
+            aggregate = aggregate_or_uri
         self.aggregates.remove(aggregate)
         if remove_annotations:
             remove_annotations_for(aggregate)
