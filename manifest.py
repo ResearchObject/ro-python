@@ -99,7 +99,7 @@ class JSONLDObject(SimpleNamespace, object):
 
     """
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super(JSONLDObject, self).__init__(**kwargs)
         #self.__getattribute__ = JSONLDObject.__getattribute__
 
     @classmethod
@@ -123,7 +123,7 @@ class JSONLDObject(SimpleNamespace, object):
 
         if(attr in map.keys()):
             cls = map[attr]
-            value = super().__getattribute__(attr)
+            value = super(JSONLDObject, self).__getattribute__(attr)
             if value is not None:
                 if isinstance(value,list):
                     #use a copy of the list being returned as we might be modifying it
@@ -142,7 +142,7 @@ class JSONLDObject(SimpleNamespace, object):
                     self.__setattr__(attr,value)
             return value
         else:
-            return super().__getattribute__(attr)
+            return super(JSONLDObject, self).__getattribute__(attr)
 
 
     def populated(self):
@@ -159,7 +159,7 @@ class ManifestEntry(JSONLDObject):
     __metaclass__ = ABCMeta
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super(ManifestEntry, self).__init__(**kwargs)
         #make a check to ensure that they each have a uri - if not then generate
         #one?
 
@@ -181,7 +181,7 @@ class ManifestEntry(JSONLDObject):
 class Agent(ManifestEntry):
 
     def __init__(self, name, uri=None, orcid=None, **kwargs):
-        super().__init__(name=name,uri=uri,orcid=orcid,**kwargs)
+        super(Agent, self).__init__(name=name,uri=uri,orcid=orcid,**kwargs)
 
     @property
     def id(self):
