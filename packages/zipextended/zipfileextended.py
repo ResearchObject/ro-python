@@ -10,7 +10,7 @@ import struct
 import operator
 
 
-class ZipFileExtended(ZipFile):
+class ZipFileExtended(ZipFile, object):
     """
         Class with methods to open, read, write, remove, rename, close and list Zip files.
 
@@ -33,7 +33,7 @@ class ZipFileExtended(ZipFile):
 
         """
     def __init__(self, file, mode="r", compression=zipfile.ZIP_STORED, allowZip64=True):
-        super().__init__(file,mode=mode,compression=compression,allowZip64=allowZip64)
+        super(ZipFileExtended, self).__init__(file,mode=mode,compression=compression,allowZip64=allowZip64)
         self.requires_commit = False
         self.removed_filelist = []
 
@@ -382,8 +382,12 @@ class ZipFileExtended(ZipFile):
                 raise RuntimeError("Failed to commit updates to zipfile")
             try:
                 os.rename(clone.filename, self.filename)
+                oldfp = self.fp
+                self.fp = clonefp
                 self._reset()
-            except:
+            except Exception as err:
+                print(err)
+                self.fp = oldfp
                 os.rename(backupfp.name, self.filename)
                 raise RuntimeError("Failed to commit updates to zipfile")
         # Is it a file-like stream?
