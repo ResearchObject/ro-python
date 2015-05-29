@@ -1,5 +1,5 @@
 import unittest as unittest
-import ucf
+import rolib.ucf
 from tests.support import TESTFN, unlink
 
 def get_files(test):

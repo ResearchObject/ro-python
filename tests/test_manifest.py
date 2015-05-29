@@ -2,7 +2,7 @@ import unittest as unittest
 
 from tests.support import (TESTFN, TESTFN2, unlink, get_files)
 
-from manifest import Manifest, Aggregate
+from rolib.manifest import Manifest, Aggregate
 
 manifest = """
 {
@@ -115,7 +115,7 @@ class ManfiestTestCase(unittest.TestCase):
         contains =  Aggregate("/test") in manifest.aggregates
         self.assertTrue(contains)
         a = manifest.get_aggregate("/test")
-        self.assertEquals(a.createdBy.name,"Alice W.Land")
+        self.assertEquals(a.createdBy.name,"Deckard")
 
 
     def test_manifest_update_existing_aggregate(self):

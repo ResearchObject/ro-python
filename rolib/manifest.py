@@ -18,7 +18,7 @@ import uuid
 try:
     from types import SimpleNamespace
 except ImportError:
-    from packages.simplenamespace import SimpleNamespace
+    from rolib.packages.simplenamespace import SimpleNamespace
 
 try:
     import urllib.parse
