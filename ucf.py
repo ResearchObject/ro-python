@@ -1,10 +1,10 @@
 import io
 import os
-import packages.zipextended.packages.zipfile as zipfile
+import rolib.packages.zipextended.packages.zipfile as zipfile
 import datetime
 import tempfile
 
-from packages.zipextended.zipfileextended import ZipFileExtended
+from rolib.packages.zipextended.zipfileextended import ZipFileExtended
 
 META_INF_DIR = "META-INF"
 MIMETYPE_FILE = "mimetype"
@@ -24,7 +24,7 @@ DEFAULT_RESERVED_FILES = [ MIMETYPE_FILE,
 DEFAULT_RESERVED_DIRECTORIES = [ META_INF_DIR ]
 
 
-class UCF(ZipFileExtended):
+class UCF(ZipFileExtended, object):
 
     def __init__(self, file, mode="r", compression=zipfile.ZIP_STORED, allowZip64=True,mimetype=None):
         """
@@ -58,7 +58,7 @@ class UCF(ZipFileExtended):
                     ignored and read from the archive.
         """
         self._check_compression_type(compression)
-        super().__init__(file,mode=mode,compression=compression,allowZip64=allowZip64)
+        super(UCF, self).__init__(file,mode=mode,compression=compression,allowZip64=allowZip64)
         if mode == 'r':
             #if we're in read mode then verify that the mimetype is there and
             #valid - if not then an exception will be raised
@@ -113,7 +113,7 @@ class UCF(ZipFileExtended):
             arcname = filename
         compress_type = compress_type or zipfile.ZIP_STORED
         self._check_compression_type(compress_type)
-        super().write(filename=filename,arcname=arcname,compress_type=compress_type)
+        super(UCF, self).write(filename=filename,arcname=arcname,compress_type=compress_type)
 
     def writestr(self, zinfo_or_arcname, data, compress_type=None):
         if isinstance(zinfo_or_arcname, zipfile.ZipInfo):
@@ -124,7 +124,7 @@ class UCF(ZipFileExtended):
         #TODO check for reserved directory
         if filename in self._reserved_files:
             raise ReservedFileNameException()
-        super().writestr(zinfo_or_arcname,data,compress_type=compress_type)
+        super(UCF, self).writestr(zinfo_or_arcname,data,compress_type=compress_type)
 
     def remove(self, zinfo_or_arcname):
         #Check that this is not a reserved filename or in a reserved directory
@@ -136,14 +136,14 @@ class UCF(ZipFileExtended):
 
         if filename in self._reserved_files:
             raise ReservedFileNameException()
-        super().remove(zinfo_or_arcname)
+        super(UCF, self).remove(zinfo_or_arcname)
 
     def rename(self, zinfo_or_arcname, filename):
         #Check that this is not a reserved filename or in a reserved directory
         #TODO check for reserved directory
         if filename in self._reserved_files:
             raise ReservedFileNameException()
-        super().rename(zinfo_or_arcname, filename)
+        super(UCF, self).rename(zinfo_or_arcname, filename)
 
     @classmethod
     def from_zipfile(cls,file, compression=zipfile.ZIP_STORED, allowZip64=True,mimetype=None):
@@ -178,7 +178,7 @@ class UCF(ZipFileExtended):
         if not self.namelist():
             #If the archive is empty then we're in luck - we can just
             #write the file at the top
-            super().writestr('mimetype',ascii_value,compress_type=zipfile.ZIP_STORED)
+            super(UCF, self).writestr('mimetype',ascii_value,compress_type=zipfile.ZIP_STORED)
             return
         else:
             #The archive isn't empty - but we need the mimetype file
