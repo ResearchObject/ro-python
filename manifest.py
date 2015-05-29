@@ -12,6 +12,7 @@ import ssl
 from abc import ABCMeta
 from datetime import datetime
 import codecs
+import uuid
 
 
 try:
@@ -31,7 +32,7 @@ register('json-ld', Parser, 'rdflib_jsonld.parser', 'JsonLDParser')
 from rdflib.term import URIRef
 from rdflib.namespace import RDF, DCTERMS
 
-from namespaces import RO, OA, ORE, BUNDLE, PAV
+#from namespaces import RO, OA, ORE, BUNDLE, PAV
 
 
 log = logging.getLogger(__name__)
@@ -202,8 +203,10 @@ class Aggregate(ManifestEntry, ProvenancePropertiesMixin):
 
 class Annotation(ManifestEntry, ProvenancePropertiesMixin):
 
-    def __init__(self, uri=None, target=None, body=None, **kwargs):
-        super().__init__(uri=uri, target=target, body=body, **kwargs)
+    def __init__(self, uri=None, about=None, contents=None, **kwargs):
+        if not uri:
+            uri = uuid.uuid4().urn
+        super().__init__(uri=uri, about=about, contents=contents, **kwargs)
 
 
 class Manifest(ManifestEntry, ProvenancePropertiesMixin):
@@ -212,7 +215,7 @@ class Manifest(ManifestEntry, ProvenancePropertiesMixin):
 
         self.id = id
         self.aggregates = []
-        self.annotates = []
+        self.annotations = []
         if filename is not None:
             with open(filename) as file:
                 contents = json.load(file)
@@ -235,6 +238,11 @@ class Manifest(ManifestEntry, ProvenancePropertiesMixin):
             if(a.uri == uri):
                 return a
 
+    def get_annotation(self, uri):
+        for a in self.annotations:
+            if(a.uri == uri):
+                return a
+
 
     def add_aggregate(self, aggregate_or_uri, createdBy=None, createdOn=None, mediatype=None):
         """
@@ -251,35 +259,51 @@ class Manifest(ManifestEntry, ProvenancePropertiesMixin):
         aggregate.createdBy = createdBy or aggregate.createdBy
         aggregate.createdOn = createdOn or aggregate.createdOn
         aggregate.mediatype = mediatype or aggregate.mediatype
-
+        self.remove_aggregate(aggregate)
         self.aggregates.append(aggregate)
 
 
 
     def remove_aggregate(self, aggregate_or_uri, remove_annotations=False):
-        if isinstance(aggregate_or_uri,str):
+        if isinstance(aggregate_or_uri, str):
             aggregate = Aggregate(aggregate_or_uri)
         else:
             aggregate = aggregate_or_uri
-        self.aggregates.remove(aggregate)
+        if aggregate in self.aggregates:
+            self.aggregates.remove(aggregate)
         if remove_annotations:
             remove_annotations_for(aggregate)
 
-    def add_annotation(self, annotation):
+    def add_annotation(self, annotation_or_uri=None, about=None, contents=None):
+
+        if annotation_or_uri:
+            if isinstance(annotation_or_uri,str):
+                annotation = Annotation(uri=annotation_or_uri)
+            else:
+                annotation = annotation_or_uri
+        else:
+            annotation = Annotation()
+
+        annotation.about = about or annotation.about
+        annotation.contents = contents or annotation.contents
+
         if annotation not in self.annotations:
             self.annotations.append(annotation)
 
     def remove_annotation(self, annotation_or_uri):
         if isinstance(annotation_or_uri,str):
-            annotation_or_uri = Annotation(uri=annotation_or_uri)
-        self.annotations.remove(annotation_or_uri)
+            annotation = Annotation(uri=annotation_or_uri)
+        else:
+            annotation = annotation_or_uri
+            
+        self.annotations.remove(annotation)
 
     def remove_annotations_for(self, manifest_entry):
         """
-        Remove any annotations that have this manifest_entry as a target
+        Remove any annotations that have this manifest_entry as the about
         """
         for a in list(self.annotations):
-            if a.target == manifest_entry.id:
+            if a.about == manifest_entry.id:
                 self.remove_annotation(a)
 
 class ManifestEncoder(json.JSONEncoder):
