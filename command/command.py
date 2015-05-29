@@ -1,12 +1,15 @@
-# ro_command.py
+# command.py
 
 """
-Basic command functions for ro, research object manager
+Basic command functions for ro command line tool
 """
 
-__author__      = "Graham Klyne (GK@ACM.ORG)"
-__copyright__   = "Copyright 2011-2013, University of Oxford"
+__author__      = "Matthew Gamble, Graham Klyne (GK@ACM.ORG)"
+__copyright__   = "Copyright 2011-2013, University of Oxford, 2014-2015, University of Manchester"
 __license__     = "MIT (http://opensource.org/licenses/MIT)"
+
+from future.standard_library import install_aliases
+install_aliases()
 
 import sys, select
 import os
@@ -14,9 +17,13 @@ import os.path
 import re
 import datetime
 import logging
-import urlparse
-import urllib2
-from ro_utils import EvoType
+
+
+from urllib.parse import urlparse, urlencode
+from urllib.request import urlopen, Request
+from urllib.error import HTTPError
+
+#from legacy.ro_utils import EvoType
 from xml.parsers import expat
 from httplib2 import RelativeURIError
 import time
@@ -28,20 +35,16 @@ except ImportError:
 
 log = logging.getLogger(__name__)
 
-import MiscUtils.ScanDirectories
+#import legacy.ro_settings
+#import legacy.ro_utils
+#import legacy.ro_uriutils
 
-import ro_settings
-import ro_utils
-import ro_uriutils
-from ro_annotation import annotationTypes, annotationPrefixes
-from ro_metadata   import ro_metadata
-import ro_remote_metadata
-from ROSRS_Session import ROSRS_Session
-from ROSRS_Session import ROSRS_Error
-import ro_rosrs_sync
-import ro_evo
-from iaeval import ro_eval_minim
+from rolib.annotation import annotationTypes, annotationPrefixes
+
 from zipfile import ZipFile
+
+from rolib.manifest import Manifest
+from rolib.bundle import Bundle
 
 RDFTYP = ["RDFXML","N3","TURTLE","NT","JSONLD","RDFA"]
 VARTYP = ["JSON","CSV","XML"]
