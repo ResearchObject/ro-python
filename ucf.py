@@ -190,13 +190,13 @@ class UCF(ZipFileExtended, object):
             self.commit()
 
     #TODO: Let clone take a filter for the files to include?
-    @classmethod
-    def clone(cls, ucf_file, file):
-        with UCF(file,mode="w",mimetype=ucf_file.mimetype) as new_zip:
+
+    def clone(self, file):
+        with UCF(file,mode="w",mimetype=self.mimetype) as new_zip:
             #Don't copy the mimetype file - it's already added by the init above
-            infolist = (fileinfo for fileinfo in ucf_file.infolist() if fileinfo.filename != MIMETYPE_FILE)
+            infolist = (fileinfo for fileinfo in self.infolist() if fileinfo.filename != MIMETYPE_FILE)
             for fileinfo in infolist:
-                bytes = ucf_file.read_compressed(fileinfo.filename)
+                bytes = self.read_compressed(fileinfo.filename)
                 new_zip.write_compressed(fileinfo,bytes)
             badfile = new_zip.testzip()
         if(badfile):
