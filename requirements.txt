@@ -1,2 +1,3 @@
 rdflib
 nose2
+future
