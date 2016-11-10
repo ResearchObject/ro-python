@@ -82,6 +82,12 @@ class ProvenancePropertiesMixin(object):
             timestamp = timestamp.isoformat()
         self.set_property("createdOn",timestamp)
 
+    @createdOn.setter
+    def authoredOn(self, timestamp):
+        if hasattr(timestamp,'isoformat'):
+            timestamp = timestamp.isoformat()
+        self.set_property("authoredOn",timestamp)
+
     @property
     def createdBy(self):
         return self.__dict__["createdBy"]
@@ -203,10 +209,10 @@ class Aggregate(ManifestEntry, ProvenancePropertiesMixin):
 
 class Annotation(ManifestEntry, ProvenancePropertiesMixin):
 
-    def __init__(self, uri=None, about=None, contents=None, **kwargs):
+    def __init__(self, uri=None, about=None, content=None, **kwargs):
         if not uri:
             uri = uuid.uuid4().urn
-        super().__init__(uri=uri, about=about, contents=contents, **kwargs)
+        super().__init__(uri=uri, about=about, content=content, **kwargs)
 
 
 class Manifest(ManifestEntry, ProvenancePropertiesMixin):
@@ -261,6 +267,7 @@ class Manifest(ManifestEntry, ProvenancePropertiesMixin):
         aggregate.mediatype = mediatype or aggregate.mediatype
         self.remove_aggregate(aggregate)
         self.aggregates.append(aggregate)
+        return aggregate
 
 
 
@@ -274,7 +281,7 @@ class Manifest(ManifestEntry, ProvenancePropertiesMixin):
         if remove_annotations:
             remove_annotations_for(aggregate)
 
-    def add_annotation(self, annotation_or_uri=None, about=None, contents=None):
+    def add_annotation(self, annotation_or_uri=None, about=None, content=None):
 
         if annotation_or_uri:
             if isinstance(annotation_or_uri,str):
@@ -285,17 +292,18 @@ class Manifest(ManifestEntry, ProvenancePropertiesMixin):
             annotation = Annotation()
 
         annotation.about = about or annotation.about
-        annotation.contents = contents or annotation.contents
+        annotation.content = content or annotation.content
 
         if annotation not in self.annotations:
             self.annotations.append(annotation)
+        return annotation
 
     def remove_annotation(self, annotation_or_uri):
         if isinstance(annotation_or_uri,str):
             annotation = Annotation(uri=annotation_or_uri)
         else:
             annotation = annotation_or_uri
-            
+
         self.annotations.remove(annotation)
 
     def remove_annotations_for(self, manifest_entry):
