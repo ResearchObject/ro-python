@@ -1,7 +1,8 @@
 
-![](https://travis-ci.org/gambl/ro-python.svg)
 
-ro-python library
+# ro-python library
+
+[![Build Status](https://travis-ci.org/ResearchObject/ro-python.svg?branch=master)](https://travis-ci.org/ResearchObject/ro-python)
 
 This repository is a partial fork of [ro-manager](https://github.com/wf4ever/ro-manager) in order to
 - Separate out core RO python tooling from the ro-manager
